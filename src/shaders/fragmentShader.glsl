@@ -22,7 +22,10 @@ void main() {
 	// circle
 	float border = 0.3;
 	float radius = 0.5;
+	// vec2(0.5) is the center of the particle uv
+	// so this is the distance between radius and current point on particle
 	float dist = radius - distance(uv, vec2(0.5));
+	// start fading beyond the border
 	float t = smoothstep(0.0, border, dist);
 
 	// final color

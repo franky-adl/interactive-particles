@@ -22,8 +22,12 @@ uniform sampler2D uTouch;
 varying vec2 vPUv;
 varying vec2 vUv;
 
+// should be returning between -1 to 1 according to https://github.com/stegu/webgl-noise/
 #pragma glslify: snoise = require(glsl-noise/simplex/2d)
 
+// theory: https://thebookofshaders.com/10/
+// just fract the resultant of a sine wave multiplied by a large number
+// returns a random number between 0 and 1
 float random(float n) {
 	return fract(sin(n) * 43758.5453123);
 }
@@ -37,15 +41,19 @@ void main() {
 
 	// pixel color
 	vec4 colA = texture2D(uTexture, puv);
+	// color to greyscale formula reference: https://www.johndcook.com/blog/2009/08/24/algorithms-convert-color-grayscale/
 	float grey = colA.r * 0.21 + colA.g * 0.71 + colA.b * 0.07;
 
-	// displacement
+	// displacement, note that offset is of size 320x180
 	vec3 displaced = offset;
-	// randomise
+	// randomise, offsetting particles slightly from their original positions in an ordered grid,
+	// pindex is the current number of particle instance / vertex (from 0 to 57599)
 	displaced.xy += vec2(random(pindex) - 0.5, random(offset.x + pindex) - 0.5) * uRandom;
+	// make a random number that responds to time
 	float rndz = (random(pindex) + snoise(vec2(pindex * 0.1, uTime * 0.1)));
+	// displace the z distance randomly according to rndz and pindex
 	displaced.z += rndz * (random(pindex) * 2.0 * uDepth);
-	// center
+	// centering the pixels(because the coordinates are initially from 0 to uTextureSize)
 	displaced.xy -= uTextureSize * 0.5;
 
 	// touch
@@ -61,6 +69,8 @@ void main() {
 
 	// final position
 	vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+	// think of this as a nested loop(1st -> over all particles, 2nd -> over all vertices in each particle)
+	// the second loop iterates through the position attribute and thus gives size to each particle
 	mvPosition.xyz += position * psize;
 	vec4 finalPosition = projectionMatrix * mvPosition;
 

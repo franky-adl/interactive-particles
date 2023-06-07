@@ -64,7 +64,7 @@ export default class Particles {
 
 		const uniforms = {
 			uTime: { value: 0 },
-			uRandom: { value: 2.0 },
+			uRandom: { value: 1.0 },
 			uDepth: { value: 4.0 },
 			uSize: { value: 1.5 },
 			uTextureSize: { value: new THREE.Vector2(this.width, this.height) },
@@ -109,6 +109,7 @@ export default class Particles {
 		for (let i = 0, j = 0; i < this.numPoints; i++) {
 			if (discard && originalColors[i * 4 + 0] <= threshold) continue;
 
+			// setting offsets.xy to be the pixel positions of the image
 			offsets[j * 3 + 0] = i % this.width;
 			offsets[j * 3 + 1] = Math.floor(i / this.width);
 
