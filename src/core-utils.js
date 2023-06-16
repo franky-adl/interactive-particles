@@ -57,6 +57,10 @@ export const runApp = (app, scene, renderer, camera, enableAnimation = false, un
             uniforms.u_resolution.value.x = window.innerWidth * window.devicePixelRatio
             uniforms.u_resolution.value.y = window.innerHeight * window.devicePixelRatio
         }
+        // other handling from the app
+        if (app.resize !== undefined) {
+            app.resize()
+        }
     })
 
     // Register mouse move/touch listener

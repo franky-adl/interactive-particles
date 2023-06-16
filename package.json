@@ -9,12 +9,15 @@
   },
   "dependencies": {
     "@parcel/transformer-glsl": "^2.9.1",
+    "browser-detect": "^0.2.28",
     "dat.gui": "0.x",
     "glsl-noise": "^0.0.0",
+    "gsap": "^3.12.1",
     "three": "0.x"
   },
   "devDependencies": {
-    "parcel": "^2.9.0"
+    "parcel": "^2.9.0",
+    "process": "^0.11.10"
   },
   "keywords": []
 }

@@ -1,14 +1,17 @@
 import * as THREE from 'three';
+import { gsap } from "gsap";
 
 import vertexShader from './shaders/vertexShader.glsl'
 import fragmentShader from './shaders/fragmentShader.glsl'
-// import TouchTexture from './TouchTexture';
+import TouchTexture from './TouchTexture';
 
 export default class Particles {
 	
-	constructor() { // constructor originally gets webgl instance
+	constructor(camera, interactiveControls) { // constructor originally gets webgl instance
 		// this.webgl = webgl;
-		this.container = new THREE.Object3D();
+		this.camera = camera
+		this.interactive = interactiveControls
+		this.container = new THREE.Object3D()
 	}
 
 	init(src) {
@@ -24,10 +27,10 @@ export default class Particles {
 			this.height = texture.image.height;
 
 			this.initPoints(true);
-			// this.initHitArea();
-			// this.initTouch();
-			// this.resize();
-			// this.show();
+			this.initHitArea();
+			this.initTouch();
+			this.resize();
+			this.show(); // also adds listeners in the end
 		});
 	}
 
@@ -65,8 +68,8 @@ export default class Particles {
 		const uniforms = {
 			uTime: { value: 0 },
 			uRandom: { value: 1.0 },
-			uDepth: { value: 4.0 },
-			uSize: { value: 1.5 },
+			uDepth: { value: 2.0 },
+			uSize: { value: 0.0 },
 			uTextureSize: { value: new THREE.Vector2(this.width, this.height) },
 			uTexture: { value: this.texture },
 			uTouch: { value: null },
@@ -124,103 +127,109 @@ export default class Particles {
 		geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(offsets, 3, false));
 		geometry.setAttribute('angle', new THREE.InstancedBufferAttribute(angles, 1, false));
 
-		this.object3D = new THREE.Mesh(geometry, material);
-		this.container.add(this.object3D);
+		this.instancedMesh = new THREE.Mesh(geometry, material);
+		this.container.add(this.instancedMesh);
 	}
 
-	// initTouch() {
-	// 	// create only once
-	// 	if (!this.touch) this.touch = new TouchTexture(this);
-	// 	this.object3D.material.uniforms.uTouch.value = this.touch.texture;
-	// }
+	// initialize TouchTexture,
+	// which converts the mouse trail into a greyscale texture used by shaders
+	// to animate the particles
+	initTouch() {
+		// create only once
+		if (!this.touch) this.touch = new TouchTexture(this);
+		this.instancedMesh.material.uniforms.uTouch.value = this.touch.texture;
+	}
 
-	// initHitArea() {
-	// 	const geometry = new THREE.PlaneGeometry(this.width, this.height, 1, 1);
-	// 	const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true, depthTest: false });
-	// 	material.visible = false;
-	// 	this.hitArea = new THREE.Mesh(geometry, material);
-	// 	this.container.add(this.hitArea);
-	// }
+	initHitArea() {
+		const geometry = new THREE.PlaneGeometry(this.width, this.height, 1, 1);
+		const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true, depthTest: false });
+		material.visible = false;
+		this.hitArea = new THREE.Mesh(geometry, material);
+		this.container.add(this.hitArea);
+	}
 
-	// addListeners() {
-	// 	this.handlerInteractiveMove = this.onInteractiveMove.bind(this);
+	addListeners() {
+		// todo: understand how Particles interact with InteractiveControls
+		this.handlerInteractiveMove = this.onInteractiveMove.bind(this);
 
-	// 	this.webgl.interactive.addListener('interactive-move', this.handlerInteractiveMove);
-	// 	this.webgl.interactive.objects.push(this.hitArea);
-	// 	this.webgl.interactive.enable();
-	// }
+		this.interactive.addListener('interactive-move', this.handlerInteractiveMove);
+		this.interactive.objects.push(this.hitArea);
+		this.interactive.enable();
+	}
 
-	// removeListeners() {
-	// 	this.webgl.interactive.removeListener('interactive-move', this.handlerInteractiveMove);
+	removeListeners() {
+		this.interactive.removeListener('interactive-move', this.handlerInteractiveMove);
 		
-	// 	const index = this.webgl.interactive.objects.findIndex(obj => obj === this.hitArea);
-	// 	this.webgl.interactive.objects.splice(index, 1);
-	// 	this.webgl.interactive.disable();
-	// }
+		const index = this.interactive.objects.findIndex(obj => obj === this.hitArea);
+		this.interactive.objects.splice(index, 1);
+		this.interactive.disable();
+	}
 
 	// ---------------------------------------------------------------------------------------------
 	// PUBLIC
 	// ---------------------------------------------------------------------------------------------
 
 	update(delta) {
-		if (!this.object3D) return;
-		// if (this.touch) this.touch.update();
+		if (!this.instancedMesh) return;
+		if (this.touch) this.touch.update();
 
-		this.object3D.material.uniforms.uTime.value += delta;
+		this.instancedMesh.material.uniforms.uTime.value += delta;
 	}
 
-	// show(time = 1.0) {
-	// 	// reset
-	// 	TweenLite.fromTo(this.object3D.material.uniforms.uSize, time, { value: 0.5 }, { value: 1.5 });
-	// 	TweenLite.to(this.object3D.material.uniforms.uRandom, time, { value: 2.0 });
-	// 	TweenLite.fromTo(this.object3D.material.uniforms.uDepth, time * 1.5, { value: 40.0 }, { value: 4.0 });
+	show(time = 1.0) {
+		// reset
+		gsap.fromTo(this.instancedMesh.material.uniforms.uSize, { value: 0.5 }, { value: 1.5, duration: time });
+		gsap.to(this.instancedMesh.material.uniforms.uRandom, { value: 2.0, duration: time });
+		gsap.fromTo(this.instancedMesh.material.uniforms.uDepth, { value: 40.0 }, { value: 4.0, duration: time * 1.5 });
 
-	// 	this.addListeners();
-	// }
+		this.addListeners();
+	}
 
-	// hide(_destroy, time = 0.8) {
-	// 	return new Promise((resolve, reject) => {
-	// 		TweenLite.to(this.object3D.material.uniforms.uRandom, time, { value: 5.0, onComplete: () => {
-	// 			if (_destroy) this.destroy();
-	// 			resolve();
-	// 		} });
-	// 		TweenLite.to(this.object3D.material.uniforms.uDepth, time, { value: -20.0, ease: Quad.easeIn });
-	// 		TweenLite.to(this.object3D.material.uniforms.uSize, time * 0.8, { value: 0.0 });
+	hide(_destroy, time = 0.8) {
+		return new Promise((resolve, reject) => {
+			gsap.to(this.instancedMesh.material.uniforms.uRandom, { value: 5.0, duration: time, onComplete: () => {
+				if (_destroy) this.destroy();
+				resolve();
+			} });
+			gsap.to(this.instancedMesh.material.uniforms.uDepth, { value: -20.0, duration: time, ease: Quad.easeIn });
+			gsap.to(this.instancedMesh.material.uniforms.uSize, { value: 0.0, duration: time * 0.8 });
 
-	// 		this.removeListeners();
-	// 	});
-	// }
+			this.removeListeners();
+		});
+	}
 
-	// destroy() {
-	// 	if (!this.object3D) return;
+	destroy() {
+		if (!this.instancedMesh) return;
 
-	// 	this.object3D.parent.remove(this.object3D);
-	// 	this.object3D.geometry.dispose();
-	// 	this.object3D.material.dispose();
-	// 	this.object3D = null;
+		this.instancedMesh.parent.remove(this.instancedMesh);
+		this.instancedMesh.geometry.dispose();
+		this.instancedMesh.material.dispose();
+		this.instancedMesh = null;
 
-	// 	if (!this.hitArea) return;
+		if (!this.hitArea) return;
 
-	// 	this.hitArea.parent.remove(this.hitArea);
-	// 	this.hitArea.geometry.dispose();
-	// 	this.hitArea.material.dispose();
-	// 	this.hitArea = null;
-	// }
+		this.hitArea.parent.remove(this.hitArea);
+		this.hitArea.geometry.dispose();
+		this.hitArea.material.dispose();
+		this.hitArea = null;
+	}
 
 	// ---------------------------------------------------------------------------------------------
 	// EVENT HANDLERS
 	// ---------------------------------------------------------------------------------------------
 
-	// resize() {
-	// 	if (!this.object3D) return;
+	resize() {
+		if (!this.instancedMesh) return;
 
-	// 	const scale = this.webgl.fovHeight / this.height;
-	// 	this.object3D.scale.set(scale, scale, 1);
-	// 	this.hitArea.scale.set(scale, scale, 1);
-	// }
+		// const scale = this.webgl.fovHeight / this.height;
+		// this is to calculate the scale for the instanced particles image to fit the screen height
+		const scale = 2 * Math.tan((this.camera.fov * Math.PI) / 180 / 2) * this.camera.position.z / this.height;
+		this.instancedMesh.scale.set(scale, scale, 1);
+		this.hitArea.scale.set(scale, scale, 1);
+	}
 
-	// onInteractiveMove(e) {
-	// 	const uv = e.intersectionData.uv;
-	// 	if (this.touch) this.touch.addTouch(uv);
-	// }
+	onInteractiveMove(e) {
+		const uv = e.intersectionData.uv;
+		if (this.touch) this.touch.addTouch(uv);
+	}
 }

@@ -10,6 +10,7 @@ import { createCamera, createRenderer, runApp } from "./core-utils"
 // Other deps
 import Particles from './Particles';
 import Img from './assets/sample-03.png'
+import InteractiveControls from './InteractiveControls'
 
 global.THREE = THREE
 // previously this feature is .legacyMode = false, see https://www.donmccurdy.com/2020/06/17/color-management-in-threejs/
@@ -55,9 +56,11 @@ let app = {
     this.controls = new OrbitControls(camera, renderer.domElement)
     this.controls.enableDamping = true
 
-    scene.background = new THREE.Color(0x222222)
+    scene.background = new THREE.Color(0x1A1C1D)
 
-    this.particles = new Particles(this)
+    // todo: understand what InteractiveControls does
+    this.interactiveControls = new InteractiveControls(camera, renderer.domElement)
+    this.particles = new Particles(camera, this.interactiveControls)
 		scene.add(this.particles.container)
     this.particles.init(Img)
 
@@ -71,31 +74,19 @@ let app = {
     // this.container is the parent DOM element of the threejs canvas element
     this.container.appendChild(this.stats1.domElement)
   },
-  // load a texture for the floor
-  // returns a promise so the caller can await on this function
-  loadTexture(mshStdFloor) {
-    return new Promise((resolve, reject) => {
-      var loader = new THREE.TextureLoader()
-      loader.load(Tile, function (texture) {
-        texture.wrapS = THREE.RepeatWrapping
-        texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(40, 40)
-        mshStdFloor.material.map = texture
-        resolve()
-      }, undefined, function (error) {
-        console.log(error)
-        reject(error)
-      })
-    })
-  },
   // @param {number} interval - time elapsed between 2 frames
   // @param {number} elapsed - total time elapsed since app start
   updateScene(interval, elapsed) {
     this.controls.update()
     this.stats1.update()
 
-    // rotate the torus
     this.particles.update(interval)
+  },
+  // whats more to do beside the usual resize threejs boilerplate code
+  // do it here
+  resize() {
+    this.particles.resize()
+    this.interactiveControls.resize()
   }
 }
 
