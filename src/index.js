@@ -58,7 +58,8 @@ let app = {
 
     scene.background = new THREE.Color(0x1A1C1D)
 
-    // todo: understand what InteractiveControls does
+    // InteractiveControls is responsible for receiving mouse/touch events
+    // and then emit specific events(e.g. interactive-move) for Particles class to respond to them
     this.interactiveControls = new InteractiveControls(camera, renderer.domElement)
     this.particles = new Particles(camera, this.interactiveControls)
 		scene.add(this.particles.container)

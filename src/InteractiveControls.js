@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 import * as THREE from 'three';
+// might be better to use detect-browser
 import browser from 'browser-detect';
 
 import { passiveEvent } from './utils/event.js';
@@ -12,6 +13,7 @@ export default class InteractiveControls extends EventEmitter {
 		super();
 
 		this.camera = camera;
+		// el is renderer.domElement
 		this.el = el || window;
 
 		this.plane = new THREE.Plane();
@@ -34,6 +36,11 @@ export default class InteractiveControls extends EventEmitter {
         this.resize()
 	}
 
+	// This gets called by Particles.addListeners
+	// snippet:
+	//
+	// this.interactive.objects.push(this.hitArea);
+	// this.interactive.enable();
 	enable() {
 		if (this.enabled) return;
 		this.addListeners();
@@ -86,6 +93,7 @@ export default class InteractiveControls extends EventEmitter {
 		else if (this.el === window) {
 			this.rect = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
 		}
+		// if no params provided, this get called, with this.el = el is renderer.domElement
 		else {
 			this.rect = this.el.getBoundingClientRect();
 		}
@@ -110,6 +118,7 @@ export default class InteractiveControls extends EventEmitter {
 		}
 		*/
 
+		// this.objects by this point should have the hit detection plane
 		const intersects = this.raycaster.intersectObjects(this.objects);
 
 		if (intersects.length > 0) {
@@ -118,12 +127,15 @@ export default class InteractiveControls extends EventEmitter {
 
 			this.plane.setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(this.plane.normal), object.position);
 
+			// runs on first trigger which saves intersected object into this.hovered
 			if (this.hovered !== object) {
 				this.emit('interactive-out', { object: this.hovered });
 				this.emit('interactive-over', { object });
 				this.hovered = object;
 			}
 			else {
+				// this event will eventually trigger Particles.onInteractiveMove
+				// which calls addTouch that adds a new point onto the trail
 				this.emit('interactive-move', { object, intersectionData: this.intersectionData });
 			}
 		}
@@ -137,15 +149,18 @@ export default class InteractiveControls extends EventEmitter {
 		}
 	}
 
+	// not of much use
 	onDown(e) {
 		this.isDown = true;
 		this.onMove(e);
 
 		this.emit('interactive-down', { object: this.hovered, previous: this.selected, intersectionData: this.intersectionData });
+		// seems like this.selected not used at the moment
 		this.selected = this.hovered;
 
 		if (this.selected) {
 			if (this.raycaster.ray.intersectPlane(this.plane, this.intersection)) {
+				// seems like this.offset not used at the moment
 				this.offset.copy(this.intersection).sub(this.selected.position);
 			}
 		}

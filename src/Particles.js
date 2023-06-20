@@ -149,9 +149,12 @@ export default class Particles {
 	}
 
 	addListeners() {
-		// todo: understand how Particles interact with InteractiveControls
+		// why use bind?
+		// funcA.bind(context) is to assign the input context as "this" in "funcA"
 		this.handlerInteractiveMove = this.onInteractiveMove.bind(this);
 
+		// when InteractiveControls(senses mouse/touch movements) emits "interactive-move"
+		// Particles.onInteractiveMove is called
 		this.interactive.addListener('interactive-move', this.handlerInteractiveMove);
 		this.interactive.objects.push(this.hitArea);
 		this.interactive.enable();
