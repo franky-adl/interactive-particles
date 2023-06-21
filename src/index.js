@@ -52,9 +52,9 @@ let camera = createCamera(50, 1, 10000, { x: 0, y: 0, z: 300 })
  *************************************************/
 let app = {
   async initScene() {
-    // OrbitControls
-    this.controls = new OrbitControls(camera, renderer.domElement)
-    this.controls.enableDamping = true
+    // Commented OrbitControls because that prevent mobile touch drag across the image smoothly
+    // this.controls = new OrbitControls(camera, renderer.domElement)
+    // this.controls.enableDamping = true
 
     scene.background = new THREE.Color(0x1A1C1D)
 
@@ -78,7 +78,7 @@ let app = {
   // @param {number} interval - time elapsed between 2 frames
   // @param {number} elapsed - total time elapsed since app start
   updateScene(interval, elapsed) {
-    this.controls.update()
+    // this.controls.update()
     this.stats1.update()
 
     this.particles.update(interval)
